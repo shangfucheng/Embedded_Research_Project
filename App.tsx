@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   SafeAreaView,
   StyleSheet,
@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import DeviceModal from "./deviceModal";
 import BLEDeviceScreen from "./BLEScreen";
+import LiveLineChart from "./LineChart";
 
 const App = () => {
   const {
@@ -20,6 +21,22 @@ const App = () => {
     disconnectFromDevice,
   } = BLEDeviceScreen();
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+  const [phData, setPhData] = useState<number[]>([]);
+  const [co2Data, setCo2Data] = useState<number[]>([]);
+  
+  useEffect(() => {
+    const phRegex = /pH: (\d+(\.\d+)?)/;
+    const co2Regex = /CO2: (\d+(\.\d+)?)/;
+    const phMatch = receivedData.match(phRegex);
+    const co2Match = receivedData.match(co2Regex);
+    if (phMatch) {
+      const phValue = parseFloat(phMatch[1]); // Convert the matched number to a float
+      setPhData(prevData => [...prevData, phValue]); // Add the parsed number to phData array
+    } else if (co2Match){
+      const co2Value = parseFloat(co2Match[1]); // Convert the matched number to a float
+      setCo2Data(prevData => [...prevData, co2Value]); // Add the parsed number to co2Data array
+    }
+  }, [receivedData]); // Dependency array to re-run the effect when data changes
 
   const scanForDevices = async () => {
     const isPermissionsEnabled = await requestPermissions();
@@ -39,14 +56,13 @@ const App = () => {
   };
 
   const sentData = "co2: 1092";
+  
   return (
     <SafeAreaView style={styles.container}>
+      {receivedData ? <LiveLineChart phData={phData} co2Data={co2Data}/>: null}
       <View style={styles.TitleWrapper}>
         {connectedDevice ? (
-          // <>
-          //   <Text style={{color:"black"}}>${receivedData}</Text>
-          // </>
-          <View style={styles.columnWrapper}>
+            <View style={styles.columnWrapper}>
             <View style={styles.column}>
             <Text style={styles.item}>
                   ${receivedData}
@@ -128,6 +144,10 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     marginHorizontal: 16,
     color:"black",
+  },
+  chart: {
+    width: '20%', // Adjust width as needed
+    height: 200, // Adjust height as needed
   },
 });
 
