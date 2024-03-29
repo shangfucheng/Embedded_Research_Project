@@ -74,7 +74,7 @@ const requestAndroid31Permissions = async () => {
       fineLocationPermission === PermissionsAndroid.RESULTS.GRANTED
     );
   } catch (error) {
-    console.error('Error requesting Android 31 permissions:', error);
+    console.log('Error requesting Android 31 permissions:', error);
     return false;
   }
 };
@@ -100,7 +100,7 @@ const requestPermissions = async () => {
       return true;
     }
   } catch (error) {
-    console.error('Error requesting permissions:', error);
+    console.log('Error requesting permissions:', error);
     return false;
   }
 };
@@ -131,20 +131,10 @@ const requestPermissions = async () => {
             console.log("BLE manager is null");
         }
     }  catch(error){
-
+      console.log("error: ", error);
     }
   }
 
-  const stopScanning = () => {
-    try {
-        if(bleManager){
-            bleManager.stopDeviceScan();
-            setDevices([]);
-        }
-    } catch (error) {
-      console.error('stop scanning ', error);
-    }
-  };
 
   const connectToDevice = async (device: Device) => {
     try {
@@ -176,7 +166,7 @@ const requestPermissions = async () => {
         dataReceivedCallBack,
       );
     } catch (error) {
-      console.error('Failed to start streaming data', error);
+      console.log('Failed to start streaming data', error);
     }
   };
 
@@ -185,7 +175,7 @@ const requestPermissions = async () => {
     characteristic: Characteristic | null,
   ) => {
     if (error) {
-      console.error('Error receiving data:', error);
+      console.log('Error receiving data:', error);
       setConnectedDevice(null);
       setReceivedData('');
       
