@@ -9,6 +9,11 @@ import {
 import DeviceModal from "./deviceModal";
 import BLEDeviceScreen from "./BLEScreen";
 import LiveLineChart from "./LineChart";
+import SaveFiles from "./SaveFiles";
+
+// Define a type for the array of 8 floating-point numbers
+type InsoleDataType = [number, number, number, number, number, number, number, number];
+// type InsoleDataType = [number, number, number, number];
 
 const App = () => {
   const {
@@ -23,18 +28,39 @@ const App = () => {
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
   const [phData, setPhData] = useState<number[]>([]);
   const [co2Data, setCo2Data] = useState<number[]>([]);
+  const [insoleData, setInsoleData] = useState<InsoleDataType>();
+  const [readData, setReadData] = useState<String[]> ([]);
   
   useEffect(() => {
+    setReadData(prevData => [...prevData, receivedData]);
+    const insole = receivedData +  "10, aY: 11, aZ: 12, s1: 101, s2: 21";
     const phRegex = /pH: (\d+(\.\d+)?)/;
     const co2Regex = /CO2: (\d+(\.\d+)?)/;
+    const insoleRegex = /insole: (-?\d+(\.\d+)?), (-?\d+(\.\d+)?), (-?\d+(\.\d+)?), (-?\d+(\.\d+)?), (-?\d+(\.\d+)?), (-?\d+(\.\d+)?), (-?\d+(\.\d+)?)/;
+
     const phMatch = receivedData.match(phRegex);
     const co2Match = receivedData.match(co2Regex);
+    const insoleMatch = receivedData.match(insole);
+
     if (phMatch) {
       const phValue = parseFloat(phMatch[1]); // Convert the matched number to a float
       setPhData(prevData => [...prevData, phValue]); // Add the parsed number to phData array
     } else if (co2Match){
       const co2Value = parseFloat(co2Match[1]); // Convert the matched number to a float
       setCo2Data(prevData => [...prevData, co2Value]); // Add the parsed number to co2Data array
+    } else if (insoleMatch){
+      // Split the string by commas and convert each substring to a number
+      const iData: InsoleDataType = [
+        parseFloat(insoleMatch[1]),
+        parseFloat(insoleMatch[3]),
+        parseFloat(insoleMatch[5]),
+        parseFloat(insoleMatch[7]),
+        parseFloat(insoleMatch[9]),
+        parseFloat(insoleMatch[11]),
+        parseFloat(insoleMatch[13]),
+        parseFloat(insoleMatch[15]),
+      ];
+      setInsoleData(iData);
     }
   }, [receivedData]); // Dependency array to re-run the effect when data changes
 
@@ -54,24 +80,23 @@ const App = () => {
     scanForDevices();
     setIsModalVisible(true);
   };
+  
+  const clearDataCallback = () => {
+    setPhData([]);
+  }
 
-  const sentData = "co2: 1092";
+  const defaultData: InsoleDataType = [10, 20, 30, 40, 50, 60, 70, 80];
   
   return (
     <SafeAreaView style={styles.container}>
-      {receivedData ? <LiveLineChart phData={phData} co2Data={co2Data}/>: null}
+      {receivedData ? <LiveLineChart phData={phData} insoleData={insoleData? insoleData: defaultData}/>: null}
       <View style={styles.TitleWrapper}>
         {connectedDevice ? (
-            <View style={styles.columnWrapper}>
+          <View style={styles.columnWrapper}>
             <View style={styles.column}>
-            <Text style={styles.item}>
-                  ${receivedData}
-            </Text>
-            </View>
-            <View style={styles.column}>
-                <Text style={styles.item}>
-                  ${sentData}
-                </Text>
+              <Text style={styles.item}>
+                    ${receivedData}
+              </Text>
             </View>
           </View>
         ) : (
@@ -80,14 +105,27 @@ const App = () => {
           </Text>
         )}
       </View>
-      <TouchableOpacity
-        onPress={connectedDevice ? disconnectFromDevice : openModal}
-        style={styles.ctaButton}
-      >
-        <Text style={styles.ctaButtonText}>
-          {connectedDevice ? "Disconnect" : "Connect"}
-        </Text>
-      </TouchableOpacity>
+
+      {connectedDevice? <SaveFiles data={readData}/>: null}
+      <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+        <TouchableOpacity
+          onPress={clearDataCallback}
+          style={styles.ctaButton}
+        >
+          <Text style={styles.ctaButtonText}>
+            Clear Data
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={connectedDevice ? disconnectFromDevice : openModal}
+          style={styles.ctaButton}
+        >
+          <Text style={styles.ctaButtonText}>
+            {connectedDevice ? "Disconnect" : "Connect"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <DeviceModal
         closeModal={hideModal}
         visible={isModalVisible}
@@ -121,8 +159,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     height: 50,
-    marginHorizontal: 20,
-    marginBottom: "30%",
+    width: "45%",
+    marginHorizontal: 10,
+    marginBottom: 20,
     borderRadius: 8,
   },
   ctaButtonText: {
@@ -131,20 +170,26 @@ const styles = StyleSheet.create({
     color: "white",
   },
   columnWrapper: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 10,
+    flexDirection: 'row', // Ensures the inner view (column) wraps correctly
+    alignItems: 'center', // Aligns items vertically within the wrapper
   },
   column: {
-    flex: 1,
+    flex: 1, // Allows the inner view to take up available space
   },
   item: {
+    fontSize: 16,
+    color: 'black',
     backgroundColor: "lightblue",
-    padding: 20,
-    marginVertical: 8,
-    marginHorizontal: 16,
-    color:"black",
+    // Set flexWrap and any other desired text styles
+    flexWrap: 'wrap', // Allows text to wrap to the next line when needed
   },
+  // item: {
+  //   backgroundColor: "lightblue",
+  //   padding: 20,
+  //   marginVertical: 8,
+  //   marginHorizontal: 16,
+  //   color:"black",
+  // },
   chart: {
     width: '20%', // Adjust width as needed
     height: 200, // Adjust height as needed
