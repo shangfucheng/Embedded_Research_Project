@@ -142,6 +142,8 @@ const requestPermissions = async () => {
             const deviceConnection = await bleManager.connectToDevice(device.id);
             setConnectedDevice(deviceConnection);
             await deviceConnection.discoverAllServicesAndCharacteristics();
+            const mtuDevice = await deviceConnection.requestMTU(247);
+            setConnectedDevice(mtuDevice);
             bleManager.stopDeviceScan();
             startStreamingData(deviceConnection);
         }

@@ -17,7 +17,7 @@
     "react-native-fs": "^2.20.0",
     "react-native-share": "^10.1.0",
     "react-native-svg": "^15.1.0",
-    "react-native-svg-charts": "^5.4.0"
+    "victory-native": "^37.0.2"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

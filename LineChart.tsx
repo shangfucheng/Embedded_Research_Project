@@ -1,78 +1,164 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text } from 'react-native';
-import { LineChart, Grid, XAxis, YAxis } from 'react-native-svg-charts';
+import React, {useState, useEffect} from 'react';
+import {View, Text, ScrollView, StyleSheet, Dimensions} from 'react-native';
+// import { LineChart, Grid, XAxis, YAxis } from 'react-native-svg-charts';
 
-type InsoleDataType = [number, number, number, number, number, number, number, number];
-// type InsoleDataType = [number, number, number, number];
+import {
+  VictoryLine,
+  VictoryChart,
+  VictoryAxis,
+  VictoryTheme,
+  VictoryZoomContainer,
+} from 'victory-native';
 
-const LiveLineChart = ({ phData, insoleData }: { phData: number[], insoleData:InsoleDataType }) => {
-  const [chartPhData, setChartPhData] = useState<number[]>([]);
-  const [chartInsoleAcc, setChartInsoleAcc] = useState<number[][]>([]);
-  const [chartInsoleIma, setChartInsoleIma] = useState<number[][]>([]);
-  const [chartInsoleS1, setChartInsoleS1] = useState<number[][]>([]);
-  const [chartInsoleS2, setChartInsoleS2] = useState<number[][]>([]);
+const MAX_DATA_BUFFER = 30000;
 
-  useEffect(() => {
-    // Update chart data when new data is received
-    setChartPhData(phData);
-  }, [phData]);
-
-  useEffect(() => {
-    if (insoleData.length >= 8) {
-      // Destructure the insoleData array to extract specific values for each chart category
-      const [X, Y, Z, aX, aY, aZ, s1, s2] = insoleData;
-
-      // Set chartInsoleAcc with X1, Y1, Z1
-      setChartInsoleAcc(prevData => [...prevData, [X, Y, Z]]);
-
-      // Set chartInsoleIma with aX, aY, aZ
-      setChartInsoleIma(prevData => [...prevData, [aX, aY, aZ]]);
-
-      // Set chartInsoleS1 with s1
-      setChartInsoleS1(prevData => [...prevData, [s1]]);
-
-      // Set chartInsoleS2 with s2
-      setChartInsoleS2(prevData => [...prevData, [s2]]);
-    }
-  }, [insoleData]);
-
-  // const xAxisData = data.map((value, index) => ({ value: index, label: `${index}` }));
-  const yAxisData_ph = phData;
-  const yAxisData_insole = insoleData;
+const StaticLineChart = React.memo(({data, minMax, selectedPlot}: {data: Map<string, Map<string, number[]>>, minMax: Map<string, {min:number, max:number}>, selectedPlot: string}) => {
+  // only display the last number? of data points
+  const plotWindowSize = selectedPlot==="all" ? -MAX_DATA_BUFFER: -30;
+  const width = Dimensions.get('window').width * 0.95;
 
   return (
-    <View style={{ flex: 1, margin:10 }}>
-      <Text style={{color:"black"}}>PH Data Plot</Text>
-      <View style={{ height: 200, flexDirection: 'row' }}>
-        <YAxis
-          data={yAxisData_ph}
-          contentInset={{ top: 20, bottom: 20 }}
-          svg={{ fontSize: 10, fill: 'grey' }}
-          numberOfTicks={10}
-          formatLabel={(value:any) => `${value.toFixed(3)}`}
-        />
-        <View style={{ flex: 1, marginLeft: 16 }}>
-          <LineChart
-            style={{ flex: 1 }}
-            data={phData}
-            svg={{ stroke: 'rgb(134, 65, 244)' }}
-            contentInset={{ top: 20, bottom: 20 }}
-            yAccessor={({ item }:{item:any}) => item}
-            xAccessor={({ index }:{index:any}) => index}
-          >
-            <Grid />
-          </LineChart>
-          {/* <XAxis
-            style={{ marginHorizontal: -10, marginTop: 10 }}
-            data={xAxisData}
-            formatLabel={(value:any, index:any) => xAxisData[index].label}
-            contentInset={{ left: 10, right: 10 }}
-            svg={{ fontSize: 10, fill: 'grey' }}
-          /> */}
+    <ScrollView contentContainerStyle={{flexGrow: 1, marginBottom: 5}}>
+      { Array.from(data.entries()).map(([skey, sData], index) => (
+        (skey === selectedPlot || selectedPlot === "all") &&
+        <View key={skey} style={styles.chartContainer}>
+          <Text style={styles.chartTitle}>{`Chart for ${skey}`}</Text>
+          {Array.from(sData.entries()).map(([lineKey, lineData]) => (
+            <Text style={lineKey.includes("X")? styles.lineX: lineKey.includes("Y")? styles.lineY: styles.lineZ}>
+              {`${lineKey}: ${lineData[lineData.length-1]}`}</Text>)
+          )}
+
+          <VictoryChart
+            width={width}
+            height={350}
+            theme={VictoryTheme.material}
+            domain={{y: [minMax.get(skey)?.min || 0, minMax.get(skey)?.max || 0]}}
+            containerComponent={<VictoryZoomContainer zoomDimension='x' />}>            
+            <VictoryAxis
+              dependentAxis
+              tickCount={15}
+              tickFormat={tick => tick.toFixed(3)}
+              style={{
+                axis: {stroke: 'grey'},
+                ticks: {size: 5},
+                tickLabels: {fontSize: 8, fill: 'grey', angle: 45},
+                
+              }}
+            />
+            {Array.from(sData.entries()).map(([lineKey, lineData]) => (
+              <VictoryLine
+                key={lineKey}
+                data={lineData.slice(plotWindowSize).map((value, index) => ({x: index, y: value}))}
+                style={{
+                  data: {
+                    opacity: 0.4,
+                    stroke:
+                      lineKey.includes('X')
+                        ? 'blue'
+                        : lineKey.includes('Y')
+                        ? 'green'
+                        : 'red',
+                  },
+                }}
+              />
+            ))}
+          </VictoryChart>
         </View>
-      </View>
-    </View>
+      ))}
+    </ScrollView>
+  );
+});
+
+const LiveLineChart = ({data, minMax, selectedPlot}: {data: Map<string, Map<string, number[]>>, minMax: Map<string, {min:number, max:number}>, selectedPlot: string}) => {
+  // only display the last number? of data points
+  const plotWindowSize = selectedPlot==="all" ? -MAX_DATA_BUFFER: -30;
+  const width = Dimensions.get('window').width * 0.95;
+
+  return (
+    <ScrollView contentContainerStyle={{flexGrow: 1, marginBottom: 5}}>
+      { Array.from(data.entries()).map(([skey, sData], index) => (
+        (skey === selectedPlot || selectedPlot === "all") &&
+        <View key={skey} style={styles.chartContainer}>
+          <Text style={styles.chartTitle}>{`Chart for ${skey}`}</Text>
+          {Array.from(sData.entries()).map(([lineKey, lineData]) => (
+            <Text style={lineKey.includes("X")? styles.lineX: lineKey.includes("Y")? styles.lineY: styles.lineZ}>
+              {`${lineKey}: ${lineData[lineData.length-1]}`}</Text>)
+          )}
+
+          <VictoryChart
+            width={width}
+            height={350}
+            theme={VictoryTheme.material}
+            domain={{y: [minMax.get(skey)?.min || 0, minMax.get(skey)?.max || 0]}}
+            containerComponent={<VictoryZoomContainer zoomDimension='x' />}>            
+            <VictoryAxis
+              dependentAxis
+              tickCount={15}
+              tickFormat={tick => tick.toFixed(3)}
+              style={{
+                axis: {stroke: 'grey'},
+                ticks: {size: 5},
+                tickLabels: {fontSize: 8, fill: 'grey', angle: 45},
+                
+              }}
+            />
+            {Array.from(sData.entries()).map(([lineKey, lineData]) => (
+              <VictoryLine
+                key={lineKey}
+                data={lineData.slice(plotWindowSize).map((value, index) => ({x: index, y: value}))}
+                style={{
+                  data: {
+                    opacity: 0.4,
+                    stroke:
+                      lineKey.includes('X')
+                        ? 'blue'
+                        : lineKey.includes('Y')
+                        ? 'green'
+                        : 'red',
+                  },
+                }}
+              />
+            ))}
+          </VictoryChart>
+        </View>
+      ))}
+    </ScrollView>
   );
 };
+const styles = StyleSheet.create({
+  container: {
+    padding: 10,
+  },
+  chartContainer: {
+    flex: 1,
+    margin: 5,
+  },
+  chartTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 5,
+    color: 'black',
+  },
+  legend: {
+    color: 'black',
+    fontSize: 16,
+    marginBottom: 3,
+  },
+  lineX: {
+    color: 'blue',
+    fontSize: 16,
+    marginBottom: 3,
+  },
+  lineY: {
+    color: 'green',
+    fontSize: 16,
+    marginBottom: 3,
+  },
+  lineZ: {
+    color: 'red',
+    fontSize: 16,
+    marginBottom: 3,
+  },
+});
 
-export default LiveLineChart;
+export {LiveLineChart, StaticLineChart};

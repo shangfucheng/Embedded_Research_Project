@@ -4,7 +4,7 @@ import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
 
 const SaveFiles = ({data}:{data:String[]}) => {
-  const [fileName, setFileName] = useState<string>("phData");
+  const [fileName, setFileName] = useState<string>("fileName");
 
   const saveDataToFile = async () => {
     if (!fileName) {
@@ -45,7 +45,7 @@ const SaveFiles = ({data}:{data:String[]}) => {
   return (
     <View>
       <TextInput
-        style={{ height: 40, borderColor: 'gray', borderWidth: 1, marginBottom: 10 }}
+        style={{ height: 40, borderColor: 'gray', borderWidth: 1, marginBottom: 10, color: 'black' }}
         placeholder="Enter filename"
         value={fileName}
         onChangeText={setFileName}
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     txt:{
         fontSize: 18,
         fontWeight: "bold",
-        color: "white",
+        color: "black",
     }
 });
 

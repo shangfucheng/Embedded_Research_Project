@@ -73,6 +73,12 @@ const DeviceModal: FC<DeviceModalProps> = (props) => {
           data={devices}
           renderItem={renderDeviceModalListItem}
         />
+        <TouchableOpacity
+          onPress={closeModal}
+          style={modalStyle.ctaButton}
+        >
+          <Text style={modalStyle.ctaButtonText}>Close</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     </Modal>
   );
@@ -105,9 +111,10 @@ const modalStyle = StyleSheet.create({
     fontWeight: "bold",
     marginHorizontal: 20,
     textAlign: "center",
+    color: "black",
   },
   ctaButton: {
-    backgroundColor: "#FF6060",
+    backgroundColor: "lightblue",
     justifyContent: "center",
     alignItems: "center",
     height: 50,
@@ -118,7 +125,7 @@ const modalStyle = StyleSheet.create({
   ctaButtonText: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "white",
+    color: "black",
   },
 });
 
